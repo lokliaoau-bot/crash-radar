@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>股灾雷达</title>
+<meta name="description" content="10 个股灾预警指标，一键刷新">
+<meta name="theme-color" content="#16181d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="股灾雷达">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>股灾雷达</h1>
+    <div class="stamp" id="stamp">—</div>
+  </div>
+  <button id="refresh" class="btn" type="button"><span class="spin"></span><span class="lbl">刷新</span></button>
+</header>
+<main id="app"><div class="empty">加载中…</div></main>
+<div id="pop" class="pop" hidden></div>
+<!--REPORT-->
+<script src="app.js"></script>
+</body>
+</html>
