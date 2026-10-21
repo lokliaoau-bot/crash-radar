@@ -26,7 +26,9 @@ def _summary(cards, comp):
     reds = lambda g: [c for c in by[g] if c["light"] == "red"]
     n = {k: sum(c["light"] == k for c in cards) for k in ("red", "yellow", "green", "gray")}
     s_red, e_red, v_red = reds("stress"), reds("economy"), reds("value")
-    if len(s_red) >= 2:
+    if n["gray"] >= 2:   # 缺了好几个灯就别下「平稳」之类的结论
+        text = "有 %d 个指标这次没拿到数据，结论不完整，稍后再刷新。" % n["gray"]
+    elif len(s_red) >= 2:
         text = "多个压力灯亮红，下跌可能正在发生。"
     elif s_red:
         text = "「%s」亮红，留意会不会扩散到其他压力灯。" % s_red[0]["name"]

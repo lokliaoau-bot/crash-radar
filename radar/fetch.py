@@ -6,6 +6,8 @@
 import io
 import os
 import re
+import shutil
+import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -15,7 +17,7 @@ import requests
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE = os.path.join(ROOT, "cache")
 
-# FRED 会拦「伪装成浏览器」的请求头（实测直接读超时），老实报个名字反而秒回
+# FRED 会拦「伪装成浏览器」的请求头（实测直接读超时）；没有 curl 时才用这个
 FRED_HEADERS = {"User-Agent": "crash-radar/1.0"}
 YAHOO_HEADERS = {"User-Agent": "Mozilla/5.0"}
 
@@ -53,10 +55,18 @@ def _save_series(s, path):
 
 
 def _fred(sid):
-    r = requests.get("https://fred.stlouisfed.org/graph/fredgraph.csv",
-                     params={"id": sid}, headers=FRED_HEADERS, timeout=30)
-    r.raise_for_status()
-    df = pd.read_csv(io.StringIO(r.text))
+    url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=" + sid
+    text = None
+    # 在 GitHub 云端机器上 FRED 只放行 curl（其它请求头一律读超时），本机两种都行，所以优先用 curl
+    if shutil.which("curl"):
+        p = subprocess.run(["curl", "-s", "-f", "-m", "30", url], capture_output=True, timeout=45)
+        if p.returncode == 0 and p.stdout:
+            text = p.stdout.decode("utf-8", "replace")
+    if text is None:
+        r = requests.get(url, headers=FRED_HEADERS, timeout=30)
+        r.raise_for_status()
+        text = r.text
+    df = pd.read_csv(io.StringIO(text))
     v = pd.to_numeric(df.iloc[:, 1], errors="coerce")
     s = pd.Series(v.values, index=pd.to_datetime(df.iloc[:, 0])).dropna()
     if len(s) < 50:

@@ -46,6 +46,7 @@
 
     h.push('<section class="sum"><div class="tally">' +
       chip("red", s.red, "红") + chip("yellow", s.yellow, "黄") + chip("green", s.green, "绿") +
+      (s.gray ? chip("gray", s.gray, "缺") : "") +
       '</div><div class="text">' + esc(s.text) + "</div>");
     var c = s.composite;
     if (c && c.p_red != null) {

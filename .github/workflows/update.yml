@@ -35,6 +35,14 @@ jobs:
       - name: 安装依赖
         run: pip install -r requirements.txt
 
+      # 留着上一轮下载的数据：某个数据源临时连不上时，用上一轮的值而不是显示「无数据」
+      - name: 取回上一轮的数据
+        uses: actions/cache@v4
+        with:
+          path: cache
+          key: data-${{ github.run_id }}
+          restore-keys: data-
+
       - name: 抓数据、重算、生成网页
         run: python run.py --publish --log
 
