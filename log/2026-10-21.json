@@ -1,0 +1,62 @@
+{
+ "generated_at": "2026-10-21T11:22:34+00:00",
+ "summary": {
+  "red": 1,
+  "yellow": 0,
+  "green": 2,
+  "gray": 7,
+  "text": "整体平稳。"
+ },
+ "lights": {
+  "buffett": [
+   "gray",
+   "—",
+   null
+  ],
+  "cape": [
+   "red",
+   "40.7",
+   "2026-10-20"
+  ],
+  "ecy": [
+   "gray",
+   "—",
+   null
+  ],
+  "yield": [
+   "gray",
+   "—",
+   null
+  ],
+  "sahm": [
+   "gray",
+   "—",
+   null
+  ],
+  "credit": [
+   "gray",
+   "—",
+   null
+  ],
+  "nfci": [
+   "gray",
+   "—",
+   null
+  ],
+  "vix": [
+   "green",
+   "17.4",
+   "2026-10-21"
+  ],
+  "trend": [
+   "green",
+   "+5.9%",
+   "2026-10-20"
+  ],
+  "audjpy": [
+   "gray",
+   "—",
+   null
+  ]
+ }
+}
