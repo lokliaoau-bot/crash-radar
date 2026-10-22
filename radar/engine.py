@@ -53,6 +53,9 @@ def run(force=True):
     cards, all_lights = [], {}
     for spec in SPECS:
         card = {k: spec[k] for k in ("key", "group", "name", "explain", "sectors", "tip")}
+        old = [d for d in spec["deps"] if status.get(d, {}).get("stale")]
+        if old:   # 数据源连不上、用的是旧数据：灯照样算，但标出来
+            card["old"] = ["%s 截至 %s" % (d, status[d].get("last", "—")) for d in old]
         try:
             r = spec["fn"](data)
             all_lights[spec["key"]] = r["lights"]
@@ -73,7 +76,7 @@ def run(force=True):
         if comp:
             comp["need"] = 3
 
-    stale = {k: v for k, v in status.items() if not v.get("ok")}
+    stale = {k: v for k, v in status.items() if v.get("stale")}
     return {
         "generated_at": pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds"),   # 前端按看的人的时区显示
         "seconds": round(time.time() - t0, 1),
@@ -83,6 +86,7 @@ def run(force=True):
         "bears": [{"peak": p.strftime("%Y-%m"), "trough": t.strftime("%Y-%m") if t is not None else None}
                   for p, _, t in bears],
         "stale": stale,
+        "sources": {k: {"via": v.get("via"), "last": v.get("last"), "stale": v.get("stale")} for k, v in status.items()},
     }
 
 

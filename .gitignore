@@ -3,3 +3,5 @@ export/
 site/
 __pycache__/
 *.pyc
+fred_api_key.txt
+手机推送设置.txt

@@ -7,6 +7,7 @@
   "use strict";
   var MODE = window.__REPORT__ ? "snapshot" : (window.__MODE__ || "local");
   var LIGHT = { red: "红灯", yellow: "黄灯", green: "绿灯", gray: "无数据" };
+  var CHAIN_FIRST = ["fred_api", "fred_graph", "yahoo1", "shiller"];   // 各序列的首选来源
   var app = document.getElementById("app");
   var btn = document.getElementById("refresh");
   var pop = document.getElementById("pop");
@@ -41,8 +42,9 @@
     document.getElementById("stamp").textContent =
       "更新于 " + fmtTime(rep.generated_at) + "（" + ago(rep.generated_at) + "）" + (MODE === "snapshot" ? " · 快照" : "");
 
-    var stale = Object.keys(rep.stale || {});
-    if (stale.length) h.push('<div class="banner">有 ' + stale.length + " 个数据源这次没抓到，用的是上次的数据：" + esc(stale.join("、")) + "</div>");
+    var olds = rep.indicators.filter(function (x) { return x.old; });
+    if (olds.length) h.push('<div class="banner">' + olds.length + " 个指标的数据源暂时连不上，用的是旧数据：" +
+      esc(olds.map(function (x) { return x.name; }).join("、")) + "</div>");
 
     h.push('<section class="sum"><div class="tally">' +
       chip("red", s.red, "红") + chip("yellow", s.yellow, "黄") + chip("green", s.green, "绿") +
@@ -61,9 +63,14 @@
       h.push("</div>");
     });
 
+    var src = rep.sources || {}, names = Object.keys(src);
+    var fresh = names.filter(function (k) { return !src[k].stale; }).length;
+    var backup = names.filter(function (k) { return src[k].via && CHAIN_FIRST.indexOf(src[k].via) < 0; }).length;
     h.push('<div class="foot">「暴跌」＝标普 500 在一年内跌 20% 以上。历史数字只能参考：股灾次数少、月份前后重叠。' +
       "红黄灯门槛都是事先定好的常用标准，没有拿历史去凑。点 ⓘ 看算法和数据日期。<br>" +
-      "数据：美联储 FRED、Yahoo、席勒（Robert Shiller）。不构成投资建议。</div>");
+      "数据：美联储 FRED、Yahoo、席勒；备用：美国财政部、CBOE、欧洲央行。" +
+      (names.length ? "本次 " + fresh + "/" + names.length + " 个数据源是最新的" + (backup ? "（" + backup + " 个用了备用来源或缓存）" : "") + "。" : "") +
+      "不构成投资建议。</div>");
     app.innerHTML = h.join("");
     drawSparks();
   }
@@ -83,7 +90,8 @@
     return '<article class="card ' + x.light + '">' +
       '<div class="row1"><div><button class="name info" type="button" data-k="' + x.key + '">' + esc(x.name) +
       '<span class="i" aria-label="说明">ⓘ</span></button>' +
-      '<div class="light"><i class="dot ' + x.light + '"></i>' + LIGHT[x.light] + "</div></div>" +
+      '<div class="light"><i class="dot ' + x.light + '"></i>' + LIGHT[x.light] +
+      (x.old ? '<span class="old">· 数据偏旧</span>' : "") + "</div></div>" +
       '<div class="val"><b>' + esc(x.display) + '</b><div class="sub">' + esc(x.sub) + "</div></div></div>" +
       '<div class="explain">' + esc(x.explain) + "</div>" +
       '<div class="sectors">影响：' + esc(x.sectors) + "</div>" +
@@ -101,6 +109,7 @@
       t.push(hs.since + " 年以来 " + hs.bears + " 次熊市，" + hs.caught + " 次在跌满 10% 之前亮过红灯；" +
         "亮红灯的月份共 " + hs.red_months + " 个。");
     }
+    if (x.old) t.push("数据偏旧：" + x.old.join("；") + "。数据源暂时连不上，恢复后会自动更新。");
     if (x.error) t.push("这次没算出来：" + x.error);
     return t.join("\n\n");
   }

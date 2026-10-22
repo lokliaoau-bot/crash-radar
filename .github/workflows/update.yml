@@ -2,9 +2,15 @@ name: 更新股灾雷达
 
 on:
   schedule:
-    # 每 30 分钟抓一次最新数据、重算、发布到手机网页（GitHub 的定时偶尔会晚几分钟）
-    - cron: "*/30 * * * *"
+    # 每 30 分钟一次。别用整点/半点：GitHub 说那是最忙的时候，定时任务会被延后甚至丢掉
+    # （2026-10-21 用 */30 实测：19 小时只跑了 5 次）
+    - cron: "17,47 * * * *"
   workflow_dispatch:          # GitHub 网页上的 Run workflow 按钮
+    inputs:
+      test_push:
+        description: "发一条测试推送"
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths-ignore:
@@ -43,8 +49,17 @@ jobs:
           key: data-${{ github.run_id }}
           restore-keys: data-
 
-      - name: 抓数据、重算、生成网页
-        run: python run.py --publish --log
+      - name: 抓数据、重算、生成网页、红灯变多就推送
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}     # 可选；有了它 FRED 在云端几乎不会失败
+        run: python run.py --publish --log --notify
+
+      - name: 测试推送
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.test_push }}
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python run.py --test-push
 
       - name: 推回每日记录（每天一次）
         run: |
