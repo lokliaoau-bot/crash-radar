@@ -68,7 +68,7 @@
     var backup = names.filter(function (k) { return src[k].via && CHAIN_FIRST.indexOf(src[k].via) < 0; }).length;
     h.push('<div class="foot">「暴跌」＝标普 500 在一年内跌 20% 以上。历史数字只能参考：股灾次数少、月份前后重叠。' +
       "红黄灯门槛都是事先定好的常用标准，没有拿历史去凑。点 ⓘ 看算法和数据日期。<br>" +
-      "数据：美联储 FRED、Yahoo、席勒；备用：美国财政部、CBOE、欧洲央行。" +
+      "数据：美联储 FRED、Yahoo、席勒；备用：美国财政部、CBOE。" +
       (names.length ? "本次 " + fresh + "/" + names.length + " 个数据源是最新的" + (backup ? "（" + backup + " 个用了备用来源或缓存）" : "") + "。" : "") +
       "不构成投资建议。</div>");
     app.innerHTML = h.join("");

@@ -2,7 +2,7 @@
 """数据下载。每个序列有一串来源，按顺序试，第一个成功的就用：
 
     FRED（美联储圣路易斯分行）→ ALFRED（同一家的另一个站）→ 官方原始发布方（美国财政部、
-    CBOE、欧洲央行）→ 上一次的缓存
+    CBOE）→ 上一次的缓存
 
 新数据和缓存合并（新的覆盖旧的，缓存补上新来源缺的年份），所以「只给近几年」的备用来源也能用。
 是否「数据偏旧」看数据本身的日期，不看这一轮有没有下载成功。
@@ -15,7 +15,6 @@ import shutil
 import subprocess
 import threading
 import time
-import zipfile
 from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
@@ -34,8 +33,8 @@ HOST_FAILS_TO_SKIP = 2      # 同一个站这一轮连续失败 2 次，后面�
 # 数据日期超过多少天算「偏旧」（按发布节奏留余量：季度数据要等下个季度公布，可以旧到 200 多天）
 MAX_DAYS = {
     "NCBEILQ027S": 270, "GDP": 230, "SAHMREALTIME": 75, "NFCI": 16,
-    "T10Y3M": 7, "DGS10": 7, "BAA10Y": 7, "GS10": 400, "TB3MS": 400, "DEXUSAL": 60, "DEXJPUS": 60,
-    "^GSPC": 5, "^VIX": 5, "AUDJPY=X": 5, "shiller": 62,
+    "T10Y3M": 7, "DGS10": 7, "BAA10Y": 7, "GS10": 400, "TB3MS": 400, "ICSA": 14,
+    "^GSPC": 5, "^VIX": 5, "shiller": 62,
 }
 
 
@@ -193,19 +192,6 @@ def fred_sp500(_):
     return fred_graph("SP500")          # 只有近 10 年，靠和缓存合并补全历史
 
 
-def ecb_audjpy(_):
-    """欧洲央行参考汇率：日元/欧元 ÷ 澳元/欧元 = 澳元兑日元（1999 年起）。"""
-    url = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.zip"
-    _guard(url)
-    r = requests.get(url, timeout=45)
-    r.raise_for_status()
-    with zipfile.ZipFile(io.BytesIO(r.content)) as z:
-        df = pd.read_csv(z.open(z.namelist()[0]))
-    d = pd.to_datetime(df["Date"])
-    s = pd.to_numeric(df["JPY"], errors="coerce") / pd.to_numeric(df["AUD"], errors="coerce")
-    return pd.Series(s.values, index=d).dropna().sort_index()
-
-
 def _shiller_url():
     _guard("https://shillerdata.com/")
     html = requests.get("https://shillerdata.com/", timeout=30).text
@@ -246,20 +232,19 @@ def shiller(_):
 _FRED = [fred_api, fred_graph, alfred_graph]
 CHAINS = {
     "NCBEILQ027S": _FRED, "GDP": _FRED, "GS10": _FRED, "TB3MS": _FRED, "SAHMREALTIME": _FRED,
-    "BAA10Y": _FRED, "DEXUSAL": _FRED, "DEXJPUS": _FRED,
+    "BAA10Y": _FRED, "ICSA": _FRED,
     "T10Y3M": [fred_api, fred_graph, treasury_10y3m, alfred_graph],
     "DGS10": [fred_api, fred_graph, treasury_10y, alfred_graph],
     # 芝加哥联储自己的 CSV（nfci-data-series-csv.csv）2026-04 起就不更新了，新地址藏在网页脚本里，所以只靠 FRED
     "NFCI": _FRED,
     "^GSPC": [yahoo1, yahoo2, fred_sp500],
     "^VIX": [yahoo1, yahoo2, cboe_vix],
-    "AUDJPY=X": [yahoo1, yahoo2, ecb_audjpy],
     "shiller": [shiller],
 }
 # 只给近几年的备用来源：必须和缓存合并才能用
 PARTIAL = {treasury_10y3m, treasury_10y, fred_sp500}
-# 口径略有不同的备用来源（欧洲央行是午盘定盘价，不是收盘价）：只接在缓存后面，不改写历史
-APPEND_ONLY = {ecb_audjpy}
+# 口径略有不同的备用来源：只接在缓存后面，不改写历史（目前没有；以前的欧洲央行澳元汇率属于这类）
+APPEND_ONLY = set()
 
 
 # ---------------------------------------------------------------- 缓存

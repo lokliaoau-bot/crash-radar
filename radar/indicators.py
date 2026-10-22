@@ -186,16 +186,18 @@ def trend(d):
                 note="标普500 %.0f" % spx.iloc[-1])
 
 
-def audjpy(d):
-    fx = (d["DEXUSAL"] * d["DEXJPUS"]).dropna()
-    fx = fx[fx.index >= "1984-01-01"]                       # 1983 年底澳元才自由浮动
-    y = d["AUDJPY=X"]
-    fx = pd.concat([fx, y[y.index > fx.index[-1]]])
-    lag = fx.reindex(fx.index - pd.Timedelta(days=91), method="ffill").values
-    chg = pd.Series(fx.values / lag - 1, index=fx.index) * 100
-    lights = pd.Series(np.where(chg <= -10, RED, np.where(chg <= -5, YEL, GRN)), index=fx.index)[chg.notna()]
-    return dict(value=fx.iloc[-1], display="%.1f" % fx.iloc[-1], sub="3个月 %+.1f%%" % chg.iloc[-1],
-                light=int(lights.iloc[-1]), as_of=_d(fx.index[-1]), series=fx, lights=lights, lines=[])
+def claims(d):
+    s = d["ICSA"]
+    ma4 = s.rolling(4).mean()
+    low = ma4.shift(1).rolling(52).min()                    # 过去一年（不含本周）4 周均值的最低点
+    rise = (ma4 / low - 1) * 100
+    avail = s.index + pd.Timedelta(days=5)                  # 周六截止，下周四公布
+    ok = low.notna().values
+    lights = pd.Series(np.where(rise >= 20, RED, np.where(rise >= 10, YEL, GRN)), index=avail)[ok]
+    v = ma4.iloc[-1] / 1e4
+    return dict(value=v, display="%.1f 万" % v, sub="比一年内最低 %+.0f%%" % rise.iloc[-1],
+                light=int(lights.iloc[-1]), as_of=_d(s.index[-1]),
+                series=pd.Series(ma4.values / 1e4, index=avail).dropna(), lights=lights, lines=[])
 
 
 # ---------------------------------------------------------------- 文案（大白话，越短越好）
@@ -225,6 +227,11 @@ SPECS = [
          explain="失业率快速上升就报警，衰退的早期信号。",
          sectors="零售、可选消费、银行坏账",
          tip="失业率 3 个月均值比过去 12 个月的最低点高出多少个百分点。≥0.5 红灯，≥0.3 黄灯。"),
+    dict(key="claims", deps=["ICSA"], group="economy", name="初请失业金", fn=claims,
+         explain="每周新申请失业救济的人数；突然变多＝公司在裁员。",
+         sectors="零售、可选消费、银行坏账、小盘股",
+         tip="美国每周首次申请失业救济的人数（4 周平均）。比过去一年的最低点高 20% 以上红灯，10% 以上黄灯。"
+             "通常比失业率更早反映裁员。2026-10-22 替换「澳元兑日元」（后者历史检验看不出有用）。"),
     dict(key="credit", deps=["BAA10Y"], group="stress", name="企业债利差", fn=credit,
          explain="公司借钱比国家贵多少；突然变贵＝有人怕违约。",
          sectors="高负债公司、小盘股、房地产",
@@ -242,9 +249,4 @@ SPECS = [
          sectors="全市场",
          tip="数字是标普 500 比 200 日均线高（低）多少。黄灯＝跌破均线；红灯＝跌破且均线本身在下行"
              "（比 20 个交易日前低）。"),
-    dict(key="audjpy", deps=["AUDJPY=X"], group="stress", name="澳元兑日元", fn=audjpy,
-         explain="全球风险胃口温度计；急跌＝资金在逃。",
-         sectors="澳股矿业、能源、澳元资产",
-         tip="澳元是「风险货币」，日元是「避险货币」。看 3 个月涨跌：≤−10% 红灯，≤−5% 黄灯。"
-             "1984 年澳元自由浮动以后才计入历史。"),
 ]
