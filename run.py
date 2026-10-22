@@ -33,9 +33,9 @@ def main():
         from radar import engine, notify
         rep = engine.load() or engine.run(force=True)
         s = rep["summary"]
-        ok = notify.send("股灾雷达：推送测试", "收到这条就说明推送通了。红灯变多时会这样提醒你。
-现在 %d 红 %d 黄 %d 绿：%s"
-                         % (s["red"], s["yellow"], s["green"], s["text"]), priority=3, tags=("white_check_mark",))
+        msg = "收到这条就说明推送通了。红灯变多时会这样提醒你。\n现在 %d 红 %d 黄 %d 绿：%s" % (
+            s["red"], s["yellow"], s["green"], s["text"])
+        ok = notify.send("股灾雷达：推送测试", msg, priority=3, tags=("white_check_mark",))
         print("测试推送已发出" if ok else "没有设置 NTFY_TOPIC，没发")
         return
 
